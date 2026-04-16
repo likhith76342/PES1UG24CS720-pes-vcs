@@ -93,7 +93,6 @@ int object_exists(const ObjectID *id) {
 //
 // Returns 0 on success, -1 on error.
 int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out) {
-	// 1. Prepare the header: "type size\0"
     const char *type_str;
     switch (type) {
         case OBJ_BLOB:   type_str = "blob"; break;
@@ -103,49 +102,42 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
     }
 
     char header[64];
-    int header_len = sprintf(header, "%s %zu", type_str, len) + 1; // +1 for the null terminator
-
-	// 2. Combine header and data into one buffer to hash
+    int header_len = sprintf(header, "%s %zu", type_str, len) + 1;
     size_t total_len = header_len + len;
     uint8_t *full_data = malloc(total_len);
-    if (!full_data) return -1;
     memcpy(full_data, header, header_len);
     memcpy(full_data + header_len, data, len);
 
-	// 3. Compute SHA-256 hash
     compute_hash(full_data, total_len, id_out);
-
-    // 4. Get the storage path
     char path[512];
     object_path(id_out, path, sizeof(path));
 
-    // 5. Create the shard directory (first two hex chars)
+    // Split path to get the directory (e.g., .pes/objects/a1)
     char dir[512];
-    strncpy(dir, path, strrchr(path, '/') - path);
-    dir[strrchr(path, '/') - path] = '\0';
-    mkdir(OBJECTS_DIR, 0755); // Ensure objects dir exists
-    mkdir(dir, 0755);
+    strcpy(dir, path);
+    char *last_slash = strrchr(dir, '/');
+    if (last_slash) {
+        *last_slash = '\0';
+        // Create the base objects directory and the shard directory
+        mkdir(OBJECTS_DIR, 0755); 
+        if (mkdir(dir, 0755) != 0) {
+            // It's okay if it already exists, but we ensure it's there
+        }
+    }
 
-	// 6. Write to file atomically (temp file then rename)
-    char tmp_path[512];
-    sprintf(tmp_path, "%s.tmp", path);
-    FILE *f = fopen(tmp_path, "wb");
+    FILE *f = fopen(path, "wb");
     if (!f) {
+        // If this prints, it explains why you don't see files
+        perror("FOPEN ERROR"); 
         free(full_data);
         return -1;
     }
     fwrite(full_data, 1, total_len, f);
     fclose(f);
 
-    if (rename(tmp_path, path) != 0) {
-        free(full_data);
-        return -1;
-    }
-
     free(full_data);
     return 0;
 }
-
 // Read an object from the store.
 //
 // Steps:

@@ -168,27 +168,26 @@ int index_load(Index *index) {
 //   - fflush, fileno, fsync, fclose    : flushing userspace buffers and syncing to disk
 //   - rename                           : atomically moving the temp file over the old index
 //
-// Returns 0 on success, -1 on error.
+
 int index_save(const Index *index) {
-    char tmp_path[520];
-    sprintf(tmp_path, "%s.tmp", INDEX_FILE);
-    
-    FILE *f = fopen(tmp_path, "w");
+    char tmp[512];
+    sprintf(tmp, "%s.tmp", INDEX_FILE);
+    FILE *f = fopen(tmp, "w");
     if (!f) return -1;
 
     for (int i = 0; i < index->count; i++) {
-        const IndexEntry *e = &index->entries[i];
-        char hex[HASH_HEX_SIZE + 1];
-        hash_to_hex(&e->hash, hex);
-        fprintf(f, "%o %s %llu %u %s\n", 
-                e->mode, hex, (unsigned long long)e->mtime_sec, e->size, e->path);
+        char hex[65];
+        hash_to_hex(&index->entries[i].hash, hex);
+        fprintf(f, "%o %s %lu %u %s\n", 
+                index->entries[i].mode, hex, 
+                index->entries[i].mtime_sec, 
+                index->entries[i].size, index->entries[i].path);
     }
-
-    fflush(f);
-    fsync(fileno(f));
     fclose(f);
-    return rename(tmp_path, INDEX_FILE);
+    return rename(tmp, INDEX_FILE);
 }
+
+// Returns 0 on success, -1 on error.
 // Stage a file for the next commit.
 //
 // HINTS - Useful functions and syscalls:
@@ -230,5 +229,6 @@ int index_add(Index *index, const char *path) {
     e->mtime_sec = st.st_mtime;
     memcpy(e->hash.hash, hash.hash, HASH_SIZE);
 
-    return 0;
+	// ... after setting e->hash, e->mode, etc.
+return index_save(index);
 }
