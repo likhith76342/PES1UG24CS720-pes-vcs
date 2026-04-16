@@ -219,4 +219,15 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
     commit.timestamp = (uint64_t)time(NULL);
     strncpy(commit.message, message, sizeof(commit.message) - 1);
 
+	// 4. Serialize the commit structure into binary format
+    if (commit_serialize(&commit, &data, &len) != 0) {
+        return -1;
+    }
+
+    // 5. Write the commit object to the object store
+    if (object_write(OBJ_COMMIT, data, len, commit_id_out) != 0) {
+        free(data);
+        return -1;
+    }
+
 }
