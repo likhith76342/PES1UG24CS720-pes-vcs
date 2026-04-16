@@ -163,4 +163,17 @@ int tree_from_index(ObjectID *id_out) {
 
     // 4. Sort entries (Required for consistent hashing)
     qsort(tree.entries, tree.count, sizeof(TreeEntry), compare_tree_entries);
+
+	// 5. Serialize Tree into binary format
+    void *data = NULL;
+    size_t len = 0;
+    if (tree_serialize(&tree, &data, &len) != 0) {
+        return -1;
+    }
+
+    // 6. Write the Tree object to .pes/objects
+    int rc = object_write(OBJ_TREE, data, len, id_out);
+
+    free(data);
+    return rc;
 }
