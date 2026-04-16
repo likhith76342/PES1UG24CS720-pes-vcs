@@ -136,5 +136,14 @@ int compare_tree_entries(const void *a, const void *b) {
 }
 
 int tree_from_index(ObjectID *id_out) {
+	// 1. Load the current staging area
+    Index index;
+    if (index_load(&index) != 0) {
+        return -1;
+    }
 
+    // 2. Initialize the Tree structure
+    Tree tree;
+    memset(&tree, 0, sizeof(Tree));
+    tree.count = 0;
 }
