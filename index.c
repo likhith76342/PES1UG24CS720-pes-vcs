@@ -26,6 +26,9 @@
 
 // ─── PROVIDED ────────────────────────────────────────────────────────────────
 
+// Forward declaration for object_write (from object.c)
+int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out);
+
 // Find an index entry by path (linear scan).
 IndexEntry* index_find(Index *index, const char *path) {
     for (int i = 0; i < index->count; i++) {
