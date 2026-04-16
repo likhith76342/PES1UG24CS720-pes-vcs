@@ -62,8 +62,7 @@ int object_exists(const ObjectID *id) {
 
 // ─── TODO: Implement these ──────────────────────────────────────────────────
 
-// Write an object to the store.
-//
+// Write an object to the store.//
 // Object format on disk:
 //   "<type> <size>\0<data>"
 //   where <type> is "blob", "tree", or "commit"
@@ -94,9 +93,24 @@ int object_exists(const ObjectID *id) {
 //
 // Returns 0 on success, -1 on error.
 int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out) {
-    // TODO: Implement
-    (void)type; (void)data; (void)len; (void)id_out;
-    return -1;
+	// 1. Prepare the header: "type size\0"
+    const char *type_str;
+    switch (type) {
+        case OBJ_BLOB:   type_str = "blob"; break;
+        case OBJ_TREE:   type_str = "tree"; break;
+        case OBJ_COMMIT: type_str = "commit"; break;
+        default: return -1;
+    }
+
+    char header[64];
+    int header_len = sprintf(header, "%s %zu", type_str, len) + 1; // +1 for the null terminator
+
+	// 2. Combine header and data into one buffer to hash
+    size_t total_len = header_len + len;
+    uint8_t *full_data = malloc(total_len);
+    if (!full_data) return -1;
+    memcpy(full_data, header, header_len);
+    memcpy(full_data + header_len, data, len);
 }
 
 // Read an object from the store.
