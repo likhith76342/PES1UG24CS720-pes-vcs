@@ -10,6 +10,8 @@
 //   "100644 hello.txt\0" followed by 32 raw bytes of SHA-256
 
 #include "tree.h"
+#include "index.h"
+#include "pes.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -78,6 +80,9 @@ int tree_parse(const void *data, size_t len, Tree *tree_out) {
     return 0;
 }
 
+// Forward declaration of object_write since it's defined in object.c
+int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out);
+
 // Helper for qsort to ensure consistent tree hashing
 static int compare_tree_entries(const void *a, const void *b) {
     return strcmp(((const TreeEntry *)a)->name, ((const TreeEntry *)b)->name);
@@ -129,14 +134,8 @@ int tree_serialize(const Tree *tree, void **data_out, size_t *len_out) {
 //   - object_write    : save that binary buffer to the store as OBJ_TREE
 //
 // Returns 0 on success, -1 on error.
-
-// Helper to sort tree entries by name (Required for determinism)
-int compare_tree_entries(const void *a, const void *b) {
-    return strcmp(((TreeEntry *)a)->name, ((TreeEntry *)b)->name);
-}
-
 int tree_from_index(ObjectID *id_out) {
-	// 1. Load the current staging area
+    // 1. Load the current staging area
     Index index;
     if (index_load(&index) != 0) {
         return -1;
@@ -147,16 +146,21 @@ int tree_from_index(ObjectID *id_out) {
     memset(&tree, 0, sizeof(Tree));
     tree.count = 0;
 
-// 3. Map Index entries to Tree entries
+    // 3. Map Index entries to Tree entries
     for (int i = 0; i < index.count; i++) {
         if (tree.count >= MAX_TREE_ENTRIES) break;
 
         tree.entries[tree.count].mode = index.entries[i].mode;
         memcpy(tree.entries[tree.count].hash.hash, index.entries[i].hash.hash, HASH_SIZE);
+        
         // Use the filename from the path
         const char *filename = strrchr(index.entries[i].path, '/');
-        if (filename) filename++; else filename = index.entries[i].path;
-
+        if (filename) {
+            filename++; 
+        } else {
+            filename = index.entries[i].path;
+        }
+        
         strncpy(tree.entries[tree.count].name, filename, sizeof(tree.entries[0].name) - 1);
         tree.count++;
     }
@@ -164,7 +168,7 @@ int tree_from_index(ObjectID *id_out) {
     // 4. Sort entries (Required for consistent hashing)
     qsort(tree.entries, tree.count, sizeof(TreeEntry), compare_tree_entries);
 
-	// 5. Serialize Tree into binary format
+    // 5. Serialize Tree into binary format
     void *data = NULL;
     size_t len = 0;
     if (tree_serialize(&tree, &data, &len) != 0) {
