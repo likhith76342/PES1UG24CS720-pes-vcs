@@ -230,4 +230,13 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
         return -1;
     }
 
+	// 6. Move the HEAD pointer to this new commit
+    if (head_update(commit_id_out) != 0) {
+        free(data);
+        return -1;
+    }
+
+    free(data);
+    return 0;
+
 }
