@@ -192,4 +192,22 @@ int object_read(const ObjectID *id, ObjectType *type_out, void **data_out, size_
         free(buf);
         return -1;
     }
+	// 2. Parse Header
+    char *null_ptr = memchr(buf, '\0', file_size);
+    if (!null_ptr) { free(buf); return -1; }
+    
+    char *header = (char *)buf;
+    size_t header_len = (null_ptr - (char *)buf) + 1;
+
+    if (strncmp(header, "blob", 4) == 0) *type_out = OBJ_BLOB;
+    else if (strncmp(header, "tree", 4) == 0) *type_out = OBJ_TREE;
+    else if (strncmp(header, "commit", 6) == 0) *type_out = OBJ_COMMIT;
+
+    // 3. Extract Data
+    *len_out = file_size - header_len;
+    *data_out = malloc(*len_out);
+    memcpy(*data_out, buf + header_len, *len_out);
+
+    free(buf);
+    return 0;
 }
