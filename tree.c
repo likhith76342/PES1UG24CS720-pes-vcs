@@ -146,4 +146,21 @@ int tree_from_index(ObjectID *id_out) {
     Tree tree;
     memset(&tree, 0, sizeof(Tree));
     tree.count = 0;
+
+// 3. Map Index entries to Tree entries
+    for (int i = 0; i < index.count; i++) {
+        if (tree.count >= MAX_TREE_ENTRIES) break;
+
+        tree.entries[tree.count].mode = index.entries[i].mode;
+        memcpy(tree.entries[tree.count].hash.hash, index.entries[i].hash.hash, HASH_SIZE);
+        // Use the filename from the path
+        const char *filename = strrchr(index.entries[i].path, '/');
+        if (filename) filename++; else filename = index.entries[i].path;
+
+        strncpy(tree.entries[tree.count].name, filename, sizeof(tree.entries[0].name) - 1);
+        tree.count++;
+    }
+
+    // 4. Sort entries (Required for consistent hashing)
+    qsort(tree.entries, tree.count, sizeof(TreeEntry), compare_tree_entries);
 }
