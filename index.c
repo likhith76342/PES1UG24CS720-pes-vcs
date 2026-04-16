@@ -232,3 +232,4 @@ int index_add(Index *index, const char *path) {
 	// ... after setting e->hash, e->mode, etc.
 return index_save(index);
 }
+

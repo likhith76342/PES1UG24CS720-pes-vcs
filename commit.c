@@ -205,4 +205,12 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
         fprintf(stderr, "error: failed to create tree from index\n");
         return -1;
     }
+
+	// 2. Set the parent commit (if HEAD exists)
+    // head_read returns 0 if a previous commit exists
+    if (head_read(&commit.parent) == 0) {
+        commit.has_parent = 1;
+    } else {
+        commit.has_parent = 0;
+    }
 }
