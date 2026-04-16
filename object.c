@@ -111,6 +111,20 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
     if (!full_data) return -1;
     memcpy(full_data, header, header_len);
     memcpy(full_data + header_len, data, len);
+
+	// 3. Compute SHA-256 hash
+    compute_hash(full_data, total_len, id_out);
+
+    // 4. Get the storage path
+    char path[512];
+    object_path(id_out, path, sizeof(path));
+
+    // 5. Create the shard directory (first two hex chars)
+    char dir[512];
+    strncpy(dir, path, strrchr(path, '/') - path);
+    dir[strrchr(path, '/') - path] = '\0';
+    mkdir(OBJECTS_DIR, 0755); // Ensure objects dir exists
+    mkdir(dir, 0755);
 }
 
 // Read an object from the store.
