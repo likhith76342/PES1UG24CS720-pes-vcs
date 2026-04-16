@@ -125,6 +125,25 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
     dir[strrchr(path, '/') - path] = '\0';
     mkdir(OBJECTS_DIR, 0755); // Ensure objects dir exists
     mkdir(dir, 0755);
+
+	// 6. Write to file atomically (temp file then rename)
+    char tmp_path[512];
+    sprintf(tmp_path, "%s.tmp", path);
+    FILE *f = fopen(tmp_path, "wb");
+    if (!f) {
+        free(full_data);
+        return -1;
+    }
+    fwrite(full_data, 1, total_len, f);
+    fclose(f);
+
+    if (rename(tmp_path, path) != 0) {
+        free(full_data);
+        return -1;
+    }
+
+    free(full_data);
+    return 0;
 }
 
 // Read an object from the store.
