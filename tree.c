@@ -129,9 +129,12 @@ int tree_serialize(const Tree *tree, void **data_out, size_t *len_out) {
 //   - object_write    : save that binary buffer to the store as OBJ_TREE
 //
 // Returns 0 on success, -1 on error.
+
+// Helper to sort tree entries by name (Required for determinism)
+int compare_tree_entries(const void *a, const void *b) {
+    return strcmp(((TreeEntry *)a)->name, ((TreeEntry *)b)->name);
+}
+
 int tree_from_index(ObjectID *id_out) {
-    // TODO: Implement recursive tree building
-    // (See Lab Appendix for logical steps)
-    (void)id_out;
-    return -1;
+
 }
